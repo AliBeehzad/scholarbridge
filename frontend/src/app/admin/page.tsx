@@ -36,8 +36,8 @@ export default function AdminPage() {
   const [message, setMessage] = useState({ type: "", text: "" });
 
   // Admin credentials (in real app, this should be handled by backend)
-  const ADMIN_USERNAME = "admin";
-  const ADMIN_PASSWORD = "admin123";
+  const ADMIN_USERNAME = "alibeehzad";
+  const ADMIN_PASSWORD = "alibeehzad4517";
 
   const handleLogin = (e: any) => {
     e.preventDefault();
