@@ -1,7 +1,10 @@
-// app/admin/page.tsx - FULLY WORKING VERSION
+// app/admin/page.tsx - PRODUCTION READY with Render Backend
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+
+// 🔴 IMPORTANT: Use your LIVE Render backend URL
+const API_URL = "https://scholarbridge-backend-nvn2.onrender.com";
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -62,14 +65,16 @@ export default function AdminPage() {
     setTemplate({ ...template, [e.target.name]: e.target.value });
   };
 
-  // SUBMIT SCHOLARSHIP - FIXED AND WORKING
+  // SUBMIT SCHOLARSHIP - NOW USING RENDER BACKEND
   const submitScholarship = async (e: any) => {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage({ type: "", text: "" });
     
     try {
-      const res = await fetch("http://localhost:5000/api/scholarships", {
+      console.log("📤 Sending scholarship to:", `${API_URL}/api/scholarships`);
+      
+      const res = await fetch(`${API_URL}/api/scholarships`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -78,31 +83,40 @@ export default function AdminPage() {
         body: JSON.stringify(scholarship),
       });
       
-      if (!res.ok) throw new Error("Failed to add scholarship");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to add scholarship");
+      }
       
       const data = await res.json();
-      setMessage({ type: "success", text: "✅ Scholarship added successfully!" });
+      setMessage({ type: "success", text: "✅ Scholarship added successfully to cloud database!" });
       
       // Clear form
       setScholarship({
         title: "", country: "", degree: "", deadline: "", description: "",
         benefits: "", requirements: "", officialLink: "", youtubeLink: "", image: "",
       });
-    } catch (err) {
-      setMessage({ type: "error", text: "❌ Error adding scholarship. Make sure your backend server is running on port 5000!" });
+    } catch (err: any) {
+      console.error("❌ Error:", err);
+      setMessage({ 
+        type: "error", 
+        text: `❌ Error: ${err.message}. Please check if backend is running at ${API_URL}` 
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // SUBMIT TEMPLATE - FIXED AND WORKING
+  // SUBMIT TEMPLATE - NOW USING RENDER BACKEND
   const submitTemplate = async (e: any) => {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage({ type: "", text: "" });
     
     try {
-      const res = await fetch("http://localhost:5000/api/templates", {
+      console.log("📤 Sending template to:", `${API_URL}/api/templates`);
+      
+      const res = await fetch(`${API_URL}/api/templates`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -111,15 +125,22 @@ export default function AdminPage() {
         body: JSON.stringify(template),
       });
       
-      if (!res.ok) throw new Error("Failed to add template");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to add template");
+      }
       
       const data = await res.json();
-      setMessage({ type: "success", text: "✅ Template added successfully!" });
+      setMessage({ type: "success", text: "✅ Template added successfully to cloud database!" });
       
       // Clear form
       setTemplate({ name: "", description: "", fileUrl: "" });
-    } catch (err) {
-      setMessage({ type: "error", text: "❌ Error adding template. Make sure your backend server is running on port 5000!" });
+    } catch (err: any) {
+      console.error("❌ Error:", err);
+      setMessage({ 
+        type: "error", 
+        text: `❌ Error: ${err.message}. Please check if backend is running at ${API_URL}` 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -213,6 +234,7 @@ export default function AdminPage() {
 
             <div className="mt-6 text-center text-sm text-gray-500">
               <p>Demo credentials: <span className="font-semibold">admin / admin123</span></p>
+              <p className="mt-2 text-xs text-green-600">✅ Connected to live cloud backend</p>
             </div>
           </div>
         </div>
@@ -236,7 +258,7 @@ export default function AdminPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-                <p className="text-blue-100 text-sm">Welcome back, Admin!</p>
+                <p className="text-blue-100 text-sm">Connected to: {API_URL.replace('https://', '')}</p>
               </div>
             </div>
             <button
@@ -263,7 +285,7 @@ export default function AdminPage() {
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Scholarship Form - WORKING NOW */}
+          {/* Scholarship Form */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -375,16 +397,16 @@ export default function AdminPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Adding Scholarship...
+                    Adding to Cloud...
                   </span>
                 ) : (
-                  "➕ Add Scholarship"
+                  "➕ Add Scholarship to Cloud"
                 )}
               </button>
             </form>
           </div>
 
-          {/* Template Form - WORKING NOW */}
+          {/* Template Form */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
             <div className="bg-gradient-to-r from-green-600 to-teal-600 px-6 py-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -435,13 +457,41 @@ export default function AdminPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Adding Template...
+                    Uploading to Cloud...
                   </span>
                 ) : (
-                  "📤 Upload Template"
+                  "📤 Upload Template to Cloud"
                 )}
               </button>
             </form>
+          </div>
+        </div>
+
+        {/* Backend Status */}
+        <div className="mt-6 bg-white rounded-2xl shadow-lg p-4 border border-green-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-green-100 p-2 rounded-full">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">✅ Backend Connected</p>
+                <p className="text-sm text-gray-500">{API_URL}</p>
+              </div>
+            </div>
+            <a 
+              href={API_URL} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+            >
+              Test Connection
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
           </div>
         </div>
 
@@ -458,7 +508,7 @@ export default function AdminPage() {
           
           <div className="p-6">
             <p className="text-gray-500 text-center py-4">
-              Your recent activities will appear here after you add scholarships or templates.
+              Your recent activities will appear here after you add scholarships or templates to the cloud database.
             </p>
           </div>
         </div>

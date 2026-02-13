@@ -3,15 +3,17 @@ import ScholarshipCard from "./components/ScholarshipCard";
 import TemplateCard from "./components/TemplateCard";
 import Link from "next/link";
 
+const API_URL = "https://scholarbridge-backend-nvn2.onrender.com";
+
 async function getScholarships() {
-  const res = await fetch("http://localhost:5000/api/scholarships", {
+  const res = await fetch(`${API_URL}/api/scholarships`, {
     cache: "no-store",
   });
   return res.json();
 }
 
 async function getTemplates() {
-  const res = await fetch("http://localhost:5000/api/templates", {
+  const res = await fetch(`${API_URL}/api/templates`, {
     cache: "no-store",
   });
   return res.json();
