@@ -1,16 +1,15 @@
 // app/page.tsx - COMPLETELY UPDATED WITH WORKING CONTACT FORM
 "use client"; // 🔴 IMPORTANT: Add this at the top!
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // ✅ FIXED: Added useEffect import
 import ScholarshipCard from "./components/ScholarshipCard";
 import TemplateCard from "./components/TemplateCard";
 import Link from "next/link";
 
 const API_URL = "https://scholarbridge-backend-nvn2.onrender.com";
 
-// These functions need to be inside the component now
 export default function Home() {
-  // 🔴 NEW: State for contact form
+  // State for contact form
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [formStatus, setFormStatus] = useState({ 
     submitting: false, 
@@ -18,13 +17,13 @@ export default function Home() {
     error: "" 
   });
 
-  // Move data fetching inside the component
+  // State for scholarships and templates
   const [scholarships, setScholarships] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch data on component mount
-  useState(() => {
+  // ✅ FIXED: Use useEffect instead of useState for data fetching
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const [scholarshipsRes, templatesRes] = await Promise.all([
@@ -45,9 +44,9 @@ export default function Home() {
     };
     
     fetchData();
-  }, []);
+  }, []); // ✅ Empty dependency array = run once on mount
 
-  // 🔴 NEW: Handle contact form submission
+  // Handle contact form submission
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormStatus({ submitting: true, success: false, error: "" });
@@ -327,7 +326,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 🔴 UPDATED: Contact Form with State and Submission Handler */}
+            {/* Contact Form with State and Submission Handler */}
             <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all border-2 border-transparent hover:border-purple-500">
               <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Send us a Message
