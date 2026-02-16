@@ -109,6 +109,16 @@ const templateSchema = new mongoose.Schema({
 const Scholarship = mongoose.model('Scholarship', scholarshipSchema);
 const Template = mongoose.model('Template', templateSchema);
 
+// ============ CONTACT SCHEMA (Optional - for storing messages in DB) ============
+const contactSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  message: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Contact = mongoose.model('Contact', contactSchema);
+
 // ============ API ROUTES ============
 
 // GET all scholarships
@@ -120,6 +130,28 @@ app.get("/api/scholarships", async (req, res) => {
     } else {
       const data = fs.readFileSync(path.join(__dirname, "data", "scholarships.json"));
       res.json(JSON.parse(data));
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET single scholarship
+app.get("/api/scholarships/:id", async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const scholarship = await Scholarship.findById(req.params.id);
+      if (!scholarship) {
+        return res.status(404).json({ message: "Scholarship not found" });
+      }
+      res.json(scholarship);
+    } else {
+      const data = JSON.parse(fs.readFileSync(path.join(__dirname, "data", "scholarships.json")));
+      const scholarship = data.find(s => s._id === req.params.id);
+      if (!scholarship) {
+        return res.status(404).json({ message: "Scholarship not found" });
+      }
+      res.json(scholarship);
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -171,6 +203,58 @@ app.post("/api/scholarships", async (req, res) => {
   }
 });
 
+// PUT update scholarship
+app.put("/api/scholarships/:id", async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const scholarship = await Scholarship.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true, runValidators: true }
+      );
+      if (!scholarship) {
+        return res.status(404).json({ message: "Scholarship not found" });
+      }
+      res.json(scholarship);
+    } else {
+      const filePath = path.join(__dirname, "data", "scholarships.json");
+      let scholarships = JSON.parse(fs.readFileSync(filePath));
+      const index = scholarships.findIndex(s => s._id === req.params.id);
+      if (index === -1) {
+        return res.status(404).json({ message: "Scholarship not found" });
+      }
+      scholarships[index] = { ...scholarships[index], ...req.body, _id: req.params.id };
+      fs.writeFileSync(filePath, JSON.stringify(scholarships, null, 2));
+      res.json(scholarships[index]);
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE scholarship
+app.delete("/api/scholarships/:id", async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const scholarship = await Scholarship.findByIdAndDelete(req.params.id);
+      if (!scholarship) {
+        return res.status(404).json({ message: "Scholarship not found" });
+      }
+      res.json({ message: "Scholarship deleted successfully" });
+    } else {
+      const filePath = path.join(__dirname, "data", "scholarships.json");
+      let scholarships = JSON.parse(fs.readFileSync(filePath));
+      scholarships = scholarships.filter(s => s._id !== req.params.id);
+      fs.writeFileSync(filePath, JSON.stringify(scholarships, null, 2));
+      res.json({ message: "Scholarship deleted successfully" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ TEMPLATE ROUTES ============
+
 // GET all templates
 app.get("/api/templates", async (req, res) => {
   try {
@@ -180,6 +264,28 @@ app.get("/api/templates", async (req, res) => {
     } else {
       const data = fs.readFileSync(path.join(__dirname, "data", "templates.json"));
       res.json(JSON.parse(data));
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET single template
+app.get("/api/templates/:id", async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const template = await Template.findById(req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } else {
+      const data = JSON.parse(fs.readFileSync(path.join(__dirname, "data", "templates.json")));
+      const template = data.find(t => t._id === req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -221,7 +327,128 @@ app.post("/api/templates", async (req, res) => {
   }
 });
 
-// SEED DATABASE
+// PUT update template
+app.put("/api/templates/:id", async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const template = await Template.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true, runValidators: true }
+      );
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } else {
+      const filePath = path.join(__dirname, "data", "templates.json");
+      let templates = JSON.parse(fs.readFileSync(filePath));
+      const index = templates.findIndex(t => t._id === req.params.id);
+      if (index === -1) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      templates[index] = { ...templates[index], ...req.body, _id: req.params.id };
+      fs.writeFileSync(filePath, JSON.stringify(templates, null, 2));
+      res.json(templates[index]);
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE template
+app.delete("/api/templates/:id", async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const template = await Template.findByIdAndDelete(req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json({ message: "Template deleted successfully" });
+    } else {
+      const filePath = path.join(__dirname, "data", "templates.json");
+      let templates = JSON.parse(fs.readFileSync(filePath));
+      templates = templates.filter(t => t._id !== req.params.id);
+      fs.writeFileSync(filePath, JSON.stringify(templates, null, 2));
+      res.json({ message: "Template deleted successfully" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ CONTACT ROUTE (NEW!) ============
+app.post("/api/contact", async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    
+    // Validation
+    if (!name || !email || !message) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Please provide name, email, and message" 
+      });
+    }
+
+    console.log("📬 New contact form submission:", { name, email });
+
+    // Store in database if connected
+    if (mongoose.connection.readyState === 1) {
+      const contact = new Contact({ name, email, message });
+      await contact.save();
+      console.log("✅ Contact message saved to database");
+    } else {
+      // Fallback to JSON file
+      const CONTACT_FILE = path.join(__dirname, "data", "contacts.json");
+      let contacts = [];
+      if (fs.existsSync(CONTACT_FILE)) {
+        contacts = JSON.parse(fs.readFileSync(CONTACT_FILE));
+      }
+      contacts.push({
+        _id: Date.now().toString(),
+        name, email, message,
+        createdAt: new Date().toISOString()
+      });
+      fs.writeFileSync(CONTACT_FILE, JSON.stringify(contacts, null, 2));
+      console.log("✅ Contact message saved to JSON file");
+    }
+
+    // For now, just return success (email functionality can be added later)
+    res.status(200).json({ 
+      success: true, 
+      message: "Thank you! Your message has been sent successfully." 
+    });
+
+  } catch (error) {
+    console.error("❌ Contact form error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to send message. Please try again later." 
+    });
+  }
+});
+
+// GET all contact messages (protected - you might want to add admin auth later)
+app.get("/api/contact", async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const messages = await Contact.find().sort({ createdAt: -1 });
+      res.json(messages);
+    } else {
+      const CONTACT_FILE = path.join(__dirname, "data", "contacts.json");
+      if (fs.existsSync(CONTACT_FILE)) {
+        const data = fs.readFileSync(CONTACT_FILE);
+        res.json(JSON.parse(data));
+      } else {
+        res.json([]);
+      }
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============ SEED DATABASE ============
 app.post("/api/seed", async (req, res) => {
   try {
     const sampleScholarships = [
@@ -265,7 +492,7 @@ app.post("/api/seed", async (req, res) => {
   }
 });
 
-// TEST ROUTE
+// ============ TEST ROUTE ============
 app.get("/api/test", (req, res) => {
   const status = mongoose.connection.readyState === 1 ? "✅ Connected to MongoDB Atlas" : "⚠️ Using JSON file storage";
   res.json({
@@ -276,8 +503,14 @@ app.get("/api/test", (req, res) => {
     endpoints: [
       "GET /api/scholarships",
       "POST /api/scholarships",
+      "PUT /api/scholarships/:id",
+      "DELETE /api/scholarships/:id",
       "GET /api/templates",
       "POST /api/templates",
+      "PUT /api/templates/:id",
+      "DELETE /api/templates/:id",
+      "POST /api/contact",
+      "GET /api/contact",
       "POST /api/seed"
     ]
   });
@@ -295,6 +528,7 @@ app.listen(PORT, () => {
   🚀  Database: ${mongoose.connection.readyState === 1 ? "✅ MongoDB Atlas" : "⚠️ JSON File"}
   🚀  http://localhost:${PORT}
   🚀  Test: http://localhost:${PORT}/api/test
+  🚀  Contact: POST /api/contact
   🚀 ====================================
   `);
 });
