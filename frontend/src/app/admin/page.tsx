@@ -13,7 +13,7 @@ export default function AdminPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
   
-  // 🔴 ADMIN CREDENTIALS ARE STORED HERE (lines 18-19)
+  // Admin credentials
   const ADMIN_USERNAME = "alibeehzad";
   const ADMIN_PASSWORD = "alibeehzad4517";
   
@@ -29,6 +29,14 @@ export default function AdminPage() {
   });
 
   const [message, setMessage] = useState({ type: "", text: "" });
+
+  // ✅ Check localStorage for existing login on component mount
+  useEffect(() => {
+    const savedLogin = localStorage.getItem("adminLoggedIn");
+    if (savedLogin === "true") {
+      setIsLoggedIn(true);
+    }
+  }, []);
 
   // Fetch message count when logged in
   useEffect(() => {
@@ -51,6 +59,8 @@ export default function AdminPage() {
     e.preventDefault();
     if (loginForm.username === ADMIN_USERNAME && loginForm.password === ADMIN_PASSWORD) {
       setIsLoggedIn(true);
+      // ✅ Save login state to localStorage
+      localStorage.setItem("adminLoggedIn", "true");
       setError("");
       setMessage({ type: "", text: "" });
     } else {
@@ -60,6 +70,8 @@ export default function AdminPage() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    // ✅ Remove login state from localStorage
+    localStorage.removeItem("adminLoggedIn");
     setLoginForm({ username: "", password: "" });
   };
 
@@ -203,10 +215,6 @@ export default function AdminPage() {
                 Sign In to Dashboard
               </button>
             </form>
-
-            <div className="mt-6 text-center text-sm text-gray-500">
-              <p>Admin Login</p>
-            </div>
           </div>
         </div>
       </div>
