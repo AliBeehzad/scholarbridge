@@ -49,6 +49,10 @@ export default function MessagesPage() {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -88,26 +92,33 @@ export default function MessagesPage() {
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <div className="text-6xl mb-4">📭</div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">No Messages Yet</h3>
-            <p className="text-gray-600">When users contact you, their messages will appear here.</p>
+            <p className="text-gray-600">When users contact you through the website form, their messages will appear here.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {messages.map((msg) => (
-              <div key={msg._id} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition">
+              <div key={msg._id} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition border-l-4 border-purple-500">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
+                    <div className="flex items-center gap-3 mb-3 flex-wrap">
                       <h3 className="text-lg font-bold text-gray-900">{msg.name}</h3>
-                      <span className="text-sm text-gray-500">
-                        {new Date(msg.createdAt).toLocaleString()}
+                      <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        {formatDate(msg.createdAt)}
                       </span>
                     </div>
-                    <p className="text-blue-600 text-sm mb-2">📧 {msg.email}</p>
-                    <p className="text-gray-700 bg-gray-50 p-4 rounded-xl">{msg.message}</p>
+                    <p className="text-blue-600 text-sm mb-2 flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      {msg.email}
+                    </p>
+                    <div className="bg-gray-50 p-4 rounded-xl mt-2">
+                      <p className="text-gray-700 whitespace-pre-wrap">{msg.message}</p>
+                    </div>
                   </div>
                   <button
                     onClick={() => deleteMessage(msg._id)}
-                    className="ml-4 text-red-500 hover:text-red-700 p-2"
+                    className="ml-4 text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition"
                     title="Delete message"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
