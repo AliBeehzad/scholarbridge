@@ -2,8 +2,8 @@
 "use client"; // 🔴 IMPORTANT: Add this at the top!
 
 import { useState, useEffect } from "react"; // ✅ FIXED: Added useEffect import
-import ScholarshipCard from "./components/ScholarshipCard";
-import TemplateCard from "./components/TemplateCard";
+import ScholarshipCard from "../components/ScholarshipCard";
+import TemplateCard from "../components/TemplateCard";
 import Link from "next/link";
 
 const API_URL = "https://scholarbridge-backend-nvn2.onrender.com";
