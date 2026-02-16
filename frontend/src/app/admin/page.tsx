@@ -1,624 +1,519 @@
-// app/admin/page.tsx - PRODUCTION READY with Render Backend, Manage Link, and Messages
-"use client";
-import { useState, useEffect } from "react";
+// app/page.tsx - COMPLETELY UPDATED WITH FIXED WAVE AND COLORFUL DESIGN
+"use client"; // 🔴 IMPORTANT: Add this at the top!
+
+import { useState, useEffect } from "react"; // ✅ FIXED: Added useEffect import
+import ScholarshipCard from "./components/ScholarshipCard";
+import TemplateCard from "./components/TemplateCard";
 import Link from "next/link";
 
-// 🔴 IMPORTANT: Use your LIVE Render backend URL
 const API_URL = "https://scholarbridge-backend-nvn2.onrender.com";
 
-export default function AdminPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [messageCount, setMessageCount] = useState(0);
-  
-  // Scholarship form state
-  const [scholarship, setScholarship] = useState({
-    title: "", 
-    country: "", 
-    degree: "", 
-    deadline: "", 
-    description: "",
-    benefits: "", 
-    requirements: "", 
-    officialLink: "", 
-    youtubeLink: "", 
-    image: "",
-  });
-  
-  // Template form state
-  const [template, setTemplate] = useState({
-    name: "", 
-    description: "", 
-    fileUrl: "",
+export default function Home() {
+  // 🔴 NEW: State for contact form
+  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const [formStatus, setFormStatus] = useState({ 
+    submitting: false, 
+    success: false, 
+    error: "" 
   });
 
-  const [message, setMessage] = useState({ type: "", text: "" });
+  // State for scholarships and templates
+  const [scholarships, setScholarships] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Admin credentials 
-  const ADMIN_USERNAME = "alibeehzad";
-  const ADMIN_PASSWORD = "alibeehzad4517";
-
-  // Fetch unread message count when logged in
+  // ✅ FIXED: Use useEffect instead of useState for data fetching
   useEffect(() => {
-    if (isLoggedIn) {
-      fetchMessageCount();
-    }
-  }, [isLoggedIn]);
-
-  const fetchMessageCount = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/contact`);
-      const data = await res.json();
-      setMessageCount(data.length);
-    } catch (error) {
-      console.error("Failed to fetch message count:", error);
-    }
-  };
-
-  const handleLogin = (e: any) => {
-    e.preventDefault();
-    if (loginForm.username === ADMIN_USERNAME && loginForm.password === ADMIN_PASSWORD) {
-      setIsLoggedIn(true);
-      setError("");
-      setMessage({ type: "", text: "" });
-    } else {
-      setError("Invalid username or password!");
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setLoginForm({ username: "", password: "" });
-  };
-
-  // Handle scholarship form input changes
-  const handleScholarshipChange = (e: any) => {
-    setScholarship({ ...scholarship, [e.target.name]: e.target.value });
-  };
-
-  // Handle template form input changes
-  const handleTemplateChange = (e: any) => {
-    setTemplate({ ...template, [e.target.name]: e.target.value });
-  };
-
-  // SUBMIT SCHOLARSHIP - USING RENDER BACKEND
-  const submitScholarship = async (e: any) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setMessage({ type: "", text: "" });
+    const fetchData = async () => {
+      try {
+        const [scholarshipsRes, templatesRes] = await Promise.all([
+          fetch(`${API_URL}/api/scholarships`),
+          fetch(`${API_URL}/api/templates`)
+        ]);
+        
+        const scholarshipsData = await scholarshipsRes.json();
+        const templatesData = await templatesRes.json();
+        
+        setScholarships(scholarshipsData);
+        setTemplates(templatesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
+    fetchData();
+  }, []); // ✅ Empty dependency array = run once on mount
+
+  // 🔴 NEW: Handle contact form submission
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormStatus({ submitting: true, success: false, error: "" });
+
     try {
-      console.log("📤 Sending scholarship to:", `${API_URL}/api/scholarships`);
-      
-      const res = await fetch(`${API_URL}/api/scholarships`, {
+      const res = await fetch(`${API_URL}/api/contact`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
-        body: JSON.stringify(scholarship),
+        body: JSON.stringify(formData),
       });
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to add scholarship");
-      }
-      
+
       const data = await res.json();
-      setMessage({ type: "success", text: "✅ Scholarship added successfully to cloud database!" });
-      
-      // Clear form
-      setScholarship({
-        title: "", country: "", degree: "", deadline: "", description: "",
-        benefits: "", requirements: "", officialLink: "", youtubeLink: "", image: "",
+
+      if (data.success) {
+        setFormStatus({ submitting: false, success: true, error: "" });
+        setFormData({ name: "", email: "", message: "" });
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setFormStatus(prev => ({ ...prev, success: false }));
+        }, 5000);
+      } else {
+        throw new Error(data.message || "Failed to send message");
+      }
+    } catch (error: any) {
+      setFormStatus({ 
+        submitting: false, 
+        success: false, 
+        error: error.message || "Failed to send message. Please try again." 
       });
-    } catch (err: any) {
-      console.error("❌ Error:", err);
-      setMessage({ 
-        type: "error", 
-        text: `❌ Error: ${err.message}. Please check if backend is running at ${API_URL}` 
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  // SUBMIT TEMPLATE - USING RENDER BACKEND
-  const submitTemplate = async (e: any) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setMessage({ type: "", text: "" });
-    
-    try {
-      console.log("📤 Sending template to:", `${API_URL}/api/templates`);
-      
-      const res = await fetch(`${API_URL}/api/templates`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(template),
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to add template");
-      }
-      
-      const data = await res.json();
-      setMessage({ type: "success", text: "✅ Template added successfully to cloud database!" });
-      
-      // Clear form
-      setTemplate({ name: "", description: "", fileUrl: "" });
-    } catch (err: any) {
-      console.error("❌ Error:", err);
-      setMessage({ 
-        type: "error", 
-        text: `❌ Error: ${err.message}. Please check if backend is running at ${API_URL}` 
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // If not logged in, show login page
-  if (!isLoggedIn) {
+  // If loading, show loading state
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 flex items-center justify-center p-4">
-        {/* Animated background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="relative w-full max-w-md">
-          {/* Main login card */}
-          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
-            <div className="text-center mb-8">
-              <div className="inline-block p-4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4">
-                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                </svg>
-              </div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Admin Access
-              </h1>
-              <p className="text-gray-500 mt-2">Secure portal for scholarship management</p>
-            </div>
-
-            {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <input
-                    type="text"
-                    value={loginForm.username}
-                    onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-                    placeholder="Enter username"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
-                  <input
-                    type="password"
-                    value={loginForm.password}
-                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-                    placeholder="Enter password"
-                    required
-                  />
-                </div>
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-                  <div className="flex items-center">
-                    <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-red-700 text-sm font-medium">{error}</p>
-                  </div>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3.5 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
-              >
-                Sign In to Dashboard
-              </button>
-            </form>
-
-            <div className="mt-6 text-center text-sm text-gray-500">
-              <p>Demo credentials: <span className="font-semibold">admin / admin123</span></p>
-              <p className="mt-2 text-xs text-green-600">✅ Connected to live cloud backend</p>
-            </div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading amazing scholarships...</p>
         </div>
       </div>
     );
   }
 
-  // If logged in, show colorful admin dashboard with WORKING forms
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-                <p className="text-blue-100 text-sm">Connected to: {API_URL.replace('https://', '')}</p>
-              </div>
-            </div>
-            
-            {/* 🔴 NEW: Three buttons - Messages, Manage, Logout */}
-            <div className="flex gap-3">
-              {/* Messages Button with Count */}
-              <Link
-                href="/admin/messages"
-                className="bg-purple-500 text-white px-5 py-2.5 rounded-xl hover:bg-purple-600 transition flex items-center gap-2 shadow-lg font-semibold relative"
+    <div className="w-full overflow-x-hidden">
+      {/* HERO SECTION - FIXED WAVE POSITION - TEXT FULLY VISIBLE */}
+      <section className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white overflow-visible">
+        {/* Animated background */}
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-white/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+        </div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+              Your Gateway to <span className="text-yellow-300 animate-pulse">Global Education</span>
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 text-gray-100 leading-relaxed">
+              Discover thousands of scholarships, download application templates, 
+              and make your study abroad dream a reality.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link 
+                href="#scholarships" 
+                className="bg-yellow-400 text-gray-900 px-8 py-4 rounded-lg font-bold text-lg hover:bg-yellow-300 transition-all transform hover:scale-105 text-center shadow-lg flex items-center justify-center gap-2 group"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <span>Browse Scholarships</span>
+                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-                Messages
-                {messageCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
-                    {messageCount}
-                  </span>
-                )}
               </Link>
-              
-              {/* Manage Content Button */}
-              <Link
-                href="/admin/manage"
-                className="bg-yellow-500 text-white px-5 py-2.5 rounded-xl hover:bg-yellow-600 transition flex items-center gap-2 shadow-lg font-semibold"
+              <Link 
+                href="#templates" 
+                className="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition-all transform hover:scale-105 text-center shadow-lg flex items-center justify-center gap-2 group"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                <span>Download Templates</span>
+                <svg className="w-5 h-5 group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                Manage Content
               </Link>
-              
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                className="bg-white/20 px-5 py-2.5 rounded-xl hover:bg-white/30 transition flex items-center gap-2 backdrop-blur-sm"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Dashboard Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {/* Success/Error Message */}
-        {message.text && (
-          <div className={`mb-6 p-4 rounded-xl ${message.type === 'success' ? 'bg-green-50 border-l-4 border-green-500' : 'bg-red-50 border-l-4 border-red-500'}`}>
-            <p className={message.type === 'success' ? 'text-green-700' : 'text-red-700'}>{message.text}</p>
-          </div>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Contact Messages</p>
-                <p className="text-3xl font-bold text-gray-900">{messageCount}</p>
-              </div>
-              <div className="bg-purple-100 p-3 rounded-full">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Quick Actions</p>
-                <p className="text-sm text-gray-600">Add or manage content</p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Backend Status</p>
-                <p className="text-sm text-green-600 font-semibold">✅ Connected</p>
-              </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Scholarship Form */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                Add New Scholarship
-              </h2>
-            </div>
-            
-            <form onSubmit={submitScholarship} className="p-6 space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <input 
-                  name="title" 
-                  value={scholarship.title}
-                  onChange={handleScholarshipChange}
-                  placeholder="🎓 Scholarship Title" 
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-                  required
-                />
-                <input 
-                  name="country" 
-                  value={scholarship.country}
-                  onChange={handleScholarshipChange}
-                  placeholder="🌍 Country" 
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-                  required
-                />
-                <input 
-                  name="degree" 
-                  value={scholarship.degree}
-                  onChange={handleScholarshipChange}
-                  placeholder="📚 Degree Level (e.g., Masters, PhD)" 
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-                  required
-                />
-                <input 
-                  name="deadline" 
-                  value={scholarship.deadline}
-                  onChange={handleScholarshipChange}
-                  placeholder="📅 Deadline" 
-                  type="date" 
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-                  required
-                />
-              </div>
-              
-              <input 
-                name="officialLink" 
-                value={scholarship.officialLink}
-                onChange={handleScholarshipChange}
-                placeholder="🔗 Official Website Link" 
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-                required
-              />
-              
-              <input 
-                name="youtubeLink" 
-                value={scholarship.youtubeLink}
-                onChange={handleScholarshipChange}
-                placeholder="▶️ YouTube Guide Link (Optional)" 
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-              />
-              
-              <input 
-                name="image" 
-                value={scholarship.image}
-                onChange={handleScholarshipChange}
-                placeholder="🖼️ Image URL (Optional)" 
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-              />
-              
-              <textarea 
-                name="description" 
-                value={scholarship.description}
-                onChange={handleScholarshipChange}
-                placeholder="📝 Description" 
-                rows={3} 
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-                required
-              ></textarea>
-              
-              <textarea 
-                name="benefits" 
-                value={scholarship.benefits}
-                onChange={handleScholarshipChange}
-                placeholder="💰 Benefits / What's included" 
-                rows={2} 
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-              ></textarea>
-              
-              <textarea 
-                name="requirements" 
-                value={scholarship.requirements}
-                onChange={handleScholarshipChange}
-                placeholder="📋 Requirements" 
-                rows={2} 
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition outline-none"
-              ></textarea>
-              
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Adding to Cloud...
-                  </span>
-                ) : (
-                  "➕ Add Scholarship to Cloud"
-                )}
-              </button>
-            </form>
-          </div>
+        {/* FIXED WAVE - Now properly positioned with no text overlap */}
+        <div className="absolute bottom-0 left-0 right-0 leading-none -mb-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 120" className="w-full h-auto" preserveAspectRatio="none">
+            <path fill="#ffffff" fillOpacity="1" d="M0,32L48,37.3C96,43,192,53,288,58.7C384,64,480,64,576,58.7C672,53,768,43,864,48C960,53,1056,75,1152,80C1248,85,1344,75,1392,69.3L1440,64L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
+          </svg>
+        </div>
+      </section>
 
-          {/* Template Form */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="bg-gradient-to-r from-green-600 to-teal-600 px-6 py-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Upload New Template
-              </h2>
+      {/* STATS SECTION - Colorful Cards */}
+      <section className="bg-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="group bg-gradient-to-br from-blue-500 to-indigo-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-2">
+              <div className="text-4xl font-bold text-white mb-2">500+</div>
+              <div className="text-blue-100">Scholarships</div>
+              <div className="mt-4 text-white/80 text-sm">🎓 Worldwide</div>
             </div>
-            
-            <form onSubmit={submitTemplate} className="p-6 space-y-4">
-              <input 
-                name="name" 
-                value={template.name}
-                onChange={handleTemplateChange}
-                placeholder="📄 Template Name (e.g., SOP Template)" 
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none"
-                required
-              />
-              
-              <textarea 
-                name="description" 
-                value={template.description}
-                onChange={handleTemplateChange}
-                placeholder="📝 Template Description" 
-                rows={3} 
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none"
-                required
-              ></textarea>
-              
-              <input 
-                name="fileUrl" 
-                value={template.fileUrl}
-                onChange={handleTemplateChange}
-                placeholder="🔗 File URL (Google Drive, Dropbox, etc.)" 
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 transition outline-none"
-                required
-              />
-              
-              <button 
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-4 rounded-xl font-bold hover:from-green-700 hover:to-teal-700 transition-all transform hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Uploading to Cloud...
-                  </span>
-                ) : (
-                  "📤 Upload Template to Cloud"
-                )}
-              </button>
-            </form>
+            <div className="group bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-2">
+              <div className="text-4xl font-bold text-white mb-2">50+</div>
+              <div className="text-emerald-100">Countries</div>
+              <div className="mt-4 text-white/80 text-sm">🌍 Global</div>
+            </div>
+            <div className="group bg-gradient-to-br from-purple-500 to-pink-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-2">
+              <div className="text-4xl font-bold text-white mb-2">1000+</div>
+              <div className="text-purple-100">Students Helped</div>
+              <div className="mt-4 text-white/80 text-sm">🎯 Success Stories</div>
+            </div>
+            <div className="group bg-gradient-to-br from-orange-500 to-red-600 p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-2">
+              <div className="text-4xl font-bold text-white mb-2">100+</div>
+              <div className="text-orange-100">Templates</div>
+              <div className="mt-4 text-white/80 text-sm">📄 Free Resources</div>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* Backend Status */}
-        <div className="mt-6 bg-white rounded-2xl shadow-lg p-4 border border-green-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-green-100 p-2 rounded-full">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">✅ Backend Connected</p>
-                <p className="text-sm text-gray-500">{API_URL}</p>
-              </div>
-            </div>
-            <a 
-              href={API_URL} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-            >
-              Test Connection
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="mt-8 bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Quick Tips
+      {/* SCHOLARSHIPS SECTION */}
+      <section id="scholarships" className="py-20 bg-gradient-to-b from-gray-50 to-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Latest Scholarships
             </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Recently added opportunities from universities worldwide
+            </p>
           </div>
+
+          {scholarships.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl shadow-lg">
+              <div className="text-6xl mb-4">🎓</div>
+              <p className="text-gray-500 text-lg">No scholarships added yet. Check back soon!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {scholarships.slice(0, 6).map((sch: any, index: number) => (
+                <div key={sch._id} className="animate-fadeIn" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <ScholarshipCard scholarship={sch} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {scholarships.length > 6 && (
+            <div className="text-center mt-12">
+              <Link 
+                href="/scholarships" 
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg"
+              >
+                View All Scholarships
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* TEMPLATES SECTION - Ultra Colorful */}
+      <section id="templates" className="py-20 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-green-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+              Application Templates
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Download free templates for your scholarship applications
+            </p>
+          </div>
+
+          {templates.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl shadow-lg">
+              <div className="text-6xl mb-4">📄</div>
+              <p className="text-gray-500 text-lg">No templates available yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {templates.slice(0, 4).map((template: any, index: number) => (
+                <div key={template._id} className="animate-fadeIn" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <TemplateCard template={template} />
+                </div>
+              ))}
+            </div>
+          )}
           
-          <div className="p-6">
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-xl">
-                <div className="text-blue-600 font-bold mb-2">📬 Messages</div>
-                <p className="text-sm text-gray-600">Click the purple Messages button to view all contact form submissions.</p>
+          {templates.length > 4 && (
+            <div className="text-center mt-10">
+              <Link 
+                href="/templates" 
+                className="inline-flex items-center gap-2 text-blue-600 font-semibold hover:text-blue-800 transition group"
+              >
+                View All Templates
+                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* CONTACT SECTION - With working form */}
+      <section id="contact" className="py-20 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Get in Touch
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Have questions? We're here to help you on your scholarship journey
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 items-start">
+            {/* Contact Info Cards */}
+            <div className="space-y-6">
+              {/* WhatsApp Card */}
+              <div className="group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-2 border-2 border-transparent hover:border-green-500">
+                <div className="flex items-start gap-4">
+                  <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771z"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">WhatsApp</h3>
+                    <p className="text-gray-600 mb-4">Direct message us on WhatsApp for instant support</p>
+                    <a 
+                      href="https://wa.me/93770038945" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all transform hover:scale-105 font-semibold shadow-lg group/btn"
+                    >
+                      <svg className="w-5 h-5 group-hover/btn:rotate-12 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771z"/>
+                      </svg>
+                      +93 77 003 8945
+                    </a>
+                  </div>
+                </div>
               </div>
-              <div className="bg-yellow-50 p-4 rounded-xl">
-                <div className="text-yellow-600 font-bold mb-2">✏️ Manage Content</div>
-                <p className="text-sm text-gray-600">Edit or delete existing scholarships and templates.</p>
+
+              {/* Email Card */}
+              <div className="group bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-2 border-2 border-transparent hover:border-blue-500">
+                <div className="flex items-start gap-4">
+                  <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-4 rounded-2xl shadow-lg group-hover:scale-110 transition-transform">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Email</h3>
+                    <p className="text-gray-600 mb-4">Send us your questions anytime, we reply within 24h</p>
+                    <a 
+                      href="mailto:alibeehzadzai@gmail.com"
+                      className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 font-semibold shadow-lg group/btn"
+                    >
+                      <svg className="w-5 h-5 group-hover/btn:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      alibeehzadzai@gmail.com
+                    </a>
+                  </div>
+                </div>
               </div>
-              <div className="bg-green-50 p-4 rounded-xl">
-                <div className="text-green-600 font-bold mb-2">➕ Add New</div>
-                <p className="text-sm text-gray-600">Use the forms above to add new scholarships and templates.</p>
+            </div>
+
+            {/* 🔴 UPDATED: Contact Form with State and Submission Handler */}
+            <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all border-2 border-transparent hover:border-purple-500">
+              <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Send us a Message
+              </h3>
+              
+              {/* Success Message */}
+              {formStatus.success && (
+                <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+                  <p className="text-green-700 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    ✅ Message sent successfully! We'll get back to you soon.
+                  </p>
+                </div>
+              )}
+              
+              {/* Error Message */}
+              {formStatus.error && (
+                <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                  <p className="text-red-700 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    ❌ {formStatus.error}
+                  </p>
+                </div>
+              )}
+              
+              <form onSubmit={handleContactSubmit} className="space-y-4">
+                <div className="group">
+                  <input 
+                    type="text" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="Your Name" 
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition outline-none group-hover:border-purple-300"
+                    required
+                    disabled={formStatus.submitting}
+                  />
+                </div>
+                <div>
+                  <input 
+                    type="email" 
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    placeholder="Your Email" 
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition outline-none"
+                    required
+                    disabled={formStatus.submitting}
+                  />
+                </div>
+                <div>
+                  <textarea 
+                    rows={4}
+                    value={formData.message}
+                    onChange={(e) => setFormData({...formData, message: e.target.value})}
+                    placeholder="Your Message" 
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition outline-none resize-none"
+                    required
+                    disabled={formStatus.submitting}
+                  ></textarea>
+                </div>
+                <button 
+                  type="submit"
+                  disabled={formStatus.submitting}
+                  className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white px-6 py-4 rounded-xl font-bold hover:from-purple-700 hover:via-pink-700 hover:to-red-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {formStatus.submitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Send Message</span>
+                      <svg className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ABOUT SECTION - Enhanced */}
+      <section id="about" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                About ScholarBridge
+              </h2>
+              <p className="text-lg text-gray-700 mb-6 leading-relaxed">
+                We're on a mission to make education accessible to everyone, everywhere. 
+                ScholarBridge connects students with fully-funded scholarships, 
+                provides application resources, and offers guidance throughout the journey.
+              </p>
+              <div className="space-y-4">
+                {[
+                  "Verified scholarships from official sources",
+                  "Free downloadable application templates",
+                  "Video guides and tutorials",
+                  "24/7 support via WhatsApp and Email"
+                ].map((text, index) => (
+                  <div key={index} className="flex items-start gap-3 group">
+                    <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-lg group-hover:scale-110 transition-transform">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                    </div>
+                    <p className="text-gray-700">{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Stats Card */}
+            <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 p-8 rounded-3xl shadow-2xl text-white relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full -ml-16 -mb-16 group-hover:scale-150 transition-transform duration-700"></div>
+              
+              <h3 className="text-2xl font-bold mb-6 relative">Start Your Journey Today</h3>
+              <p className="text-blue-100 mb-8 relative text-lg">
+                Join thousands of students who have successfully secured scholarships through ScholarBridge.
+              </p>
+              
+              <div className="space-y-4 relative">
+                <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <span className="font-semibold">New scholarships added daily</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm">
+                  <div className="bg-white/20 p-2 rounded-lg">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-5m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="font-semibold">100% free resources</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* CTA SECTION - Enhanced */}
+      <section className="bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 py-20">
+        <div className="max-w-4xl mx-auto text-center px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Ready to Start Your Journey?
+          </h2>
+          <p className="text-xl text-indigo-100 mb-8">
+            Join thousands of students who found their perfect scholarship through ScholarBridge
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link 
+              href="#scholarships" 
+              className="bg-white text-indigo-700 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all transform hover:scale-105 shadow-xl flex items-center justify-center gap-2 group"
+            >
+              <span>Find Scholarships</span>
+              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+            <Link 
+              href="#contact" 
+              className="border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-indigo-700 transition-all transform hover:scale-105 flex items-center justify-center gap-2 group"
+            >
+              <span>Contact Us</span>
+              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
