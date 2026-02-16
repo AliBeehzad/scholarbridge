@@ -1,7 +1,7 @@
-// app/admin/page.tsx - PRODUCTION READY with Render Backend
+// app/admin/page.tsx - PRODUCTION READY with Render Backend and Manage Link
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 // 🔴 IMPORTANT: Use your LIVE Render backend URL
 const API_URL = "https://scholarbridge-backend-nvn2.onrender.com";
@@ -35,7 +35,7 @@ export default function AdminPage() {
 
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  // Admin credentials (in real app, this should be handled by backend)
+  // Admin credentials 
   const ADMIN_USERNAME = "alibeehzad";
   const ADMIN_PASSWORD = "alibeehzad4517";
 
@@ -65,7 +65,7 @@ export default function AdminPage() {
     setTemplate({ ...template, [e.target.name]: e.target.value });
   };
 
-  // SUBMIT SCHOLARSHIP - NOW USING RENDER BACKEND
+  // SUBMIT SCHOLARSHIP - USING RENDER BACKEND
   const submitScholarship = async (e: any) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -107,7 +107,7 @@ export default function AdminPage() {
     }
   };
 
-  // SUBMIT TEMPLATE - NOW USING RENDER BACKEND
+  // SUBMIT TEMPLATE - USING RENDER BACKEND
   const submitTemplate = async (e: any) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -261,15 +261,28 @@ export default function AdminPage() {
                 <p className="text-blue-100 text-sm">Connected to: {API_URL.replace('https://', '')}</p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="bg-white/20 px-5 py-2.5 rounded-xl hover:bg-white/30 transition flex items-center gap-2 backdrop-blur-sm"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Logout
-            </button>
+            
+            {/* 🔴 NEW: Manage Content Button */}
+            <div className="flex gap-3">
+              <Link
+                href="/admin/manage"
+                className="bg-yellow-500 text-white px-5 py-2.5 rounded-xl hover:bg-yellow-600 transition flex items-center gap-2 shadow-lg font-semibold"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                Manage Content
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="bg-white/20 px-5 py-2.5 rounded-xl hover:bg-white/30 transition flex items-center gap-2 backdrop-blur-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </div>
