@@ -1,27 +1,100 @@
-// app/page.tsx - COMPLETELY UPDATED WITH FIXED WAVE AND COLORFUL DESIGN
+// app/page.tsx - COMPLETELY UPDATED WITH WORKING CONTACT FORM
+"use client"; // 🔴 IMPORTANT: Add this at the top!
+
+import { useState } from "react";
 import ScholarshipCard from "./components/ScholarshipCard";
 import TemplateCard from "./components/TemplateCard";
 import Link from "next/link";
 
 const API_URL = "https://scholarbridge-backend-nvn2.onrender.com";
 
-async function getScholarships() {
-  const res = await fetch(`${API_URL}/api/scholarships`, {
-    cache: "no-store",
+// These functions need to be inside the component now
+export default function Home() {
+  // 🔴 NEW: State for contact form
+  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const [formStatus, setFormStatus] = useState({ 
+    submitting: false, 
+    success: false, 
+    error: "" 
   });
-  return res.json();
-}
 
-async function getTemplates() {
-  const res = await fetch(`${API_URL}/api/templates`, {
-    cache: "no-store",
-  });
-  return res.json();
-}
+  // Move data fetching inside the component
+  const [scholarships, setScholarships] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function Home() {
-  const scholarships = await getScholarships();
-  const templates = await getTemplates();
+  // Fetch data on component mount
+  useState(() => {
+    const fetchData = async () => {
+      try {
+        const [scholarshipsRes, templatesRes] = await Promise.all([
+          fetch(`${API_URL}/api/scholarships`),
+          fetch(`${API_URL}/api/templates`)
+        ]);
+        
+        const scholarshipsData = await scholarshipsRes.json();
+        const templatesData = await templatesRes.json();
+        
+        setScholarships(scholarshipsData);
+        setTemplates(templatesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  // 🔴 NEW: Handle contact form submission
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormStatus({ submitting: true, success: false, error: "" });
+
+    try {
+      const res = await fetch(`${API_URL}/api/contact`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setFormStatus({ submitting: false, success: true, error: "" });
+        setFormData({ name: "", email: "", message: "" });
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setFormStatus(prev => ({ ...prev, success: false }));
+        }, 5000);
+      } else {
+        throw new Error(data.message || "Failed to send message");
+      }
+    } catch (error: any) {
+      setFormStatus({ 
+        submitting: false, 
+        success: false, 
+        error: error.message || "Failed to send message. Please try again." 
+      });
+    }
+  };
+
+  // If loading, show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading amazing scholarships...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full overflow-x-hidden">
@@ -188,7 +261,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* CONTACT SECTION - With your WhatsApp and Email */}
+      {/* CONTACT SECTION - With working form */}
       <section id="contact" className="py-20 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -254,41 +327,91 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Quick Contact Form - Enhanced */}
+            {/* 🔴 UPDATED: Contact Form with State and Submission Handler */}
             <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all border-2 border-transparent hover:border-purple-500">
               <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Send us a Message
               </h3>
-              <form className="space-y-4">
+              
+              {/* Success Message */}
+              {formStatus.success && (
+                <div className="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+                  <p className="text-green-700 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    ✅ Message sent successfully! We'll get back to you soon.
+                  </p>
+                </div>
+              )}
+              
+              {/* Error Message */}
+              {formStatus.error && (
+                <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                  <p className="text-red-700 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    ❌ {formStatus.error}
+                  </p>
+                </div>
+              )}
+              
+              <form onSubmit={handleContactSubmit} className="space-y-4">
                 <div className="group">
                   <input 
                     type="text" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
                     placeholder="Your Name" 
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition outline-none group-hover:border-purple-300"
+                    required
+                    disabled={formStatus.submitting}
                   />
                 </div>
                 <div>
                   <input 
                     type="email" 
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
                     placeholder="Your Email" 
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition outline-none"
+                    required
+                    disabled={formStatus.submitting}
                   />
                 </div>
                 <div>
                   <textarea 
                     rows={4}
+                    value={formData.message}
+                    onChange={(e) => setFormData({...formData, message: e.target.value})}
                     placeholder="Your Message" 
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition outline-none resize-none"
+                    required
+                    disabled={formStatus.submitting}
                   ></textarea>
                 </div>
                 <button 
                   type="submit"
-                  className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white px-6 py-4 rounded-xl font-bold hover:from-purple-700 hover:via-pink-700 hover:to-red-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 group"
+                  disabled={formStatus.submitting}
+                  className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white px-6 py-4 rounded-xl font-bold hover:from-purple-700 hover:via-pink-700 hover:to-red-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span>Send Message</span>
-                  <svg className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
+                  {formStatus.submitting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Send Message</span>
+                      <svg className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </>
+                  )}
                 </button>
               </form>
             </div>
