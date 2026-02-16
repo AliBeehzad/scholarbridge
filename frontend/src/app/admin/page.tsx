@@ -1,6 +1,6 @@
-// app/admin/page.tsx - PRODUCTION READY with Render Backend and Manage Link
+// app/admin/page.tsx - PRODUCTION READY with Render Backend, Manage Link, and Messages
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 // 🔴 IMPORTANT: Use your LIVE Render backend URL
@@ -11,6 +11,7 @@ export default function AdminPage() {
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [messageCount, setMessageCount] = useState(0);
   
   // Scholarship form state
   const [scholarship, setScholarship] = useState({
@@ -38,6 +39,23 @@ export default function AdminPage() {
   // Admin credentials 
   const ADMIN_USERNAME = "alibeehzad";
   const ADMIN_PASSWORD = "alibeehzad4517";
+
+  // Fetch unread message count when logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchMessageCount();
+    }
+  }, [isLoggedIn]);
+
+  const fetchMessageCount = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/contact`);
+      const data = await res.json();
+      setMessageCount(data.length);
+    } catch (error) {
+      console.error("Failed to fetch message count:", error);
+    }
+  };
 
   const handleLogin = (e: any) => {
     e.preventDefault();
@@ -262,8 +280,25 @@ export default function AdminPage() {
               </div>
             </div>
             
-            {/* 🔴 NEW: Manage Content Button */}
+            {/* 🔴 NEW: Three buttons - Messages, Manage, Logout */}
             <div className="flex gap-3">
+              {/* Messages Button with Count */}
+              <Link
+                href="/admin/messages"
+                className="bg-purple-500 text-white px-5 py-2.5 rounded-xl hover:bg-purple-600 transition flex items-center gap-2 shadow-lg font-semibold relative"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Messages
+                {messageCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+                    {messageCount}
+                  </span>
+                )}
+              </Link>
+              
+              {/* Manage Content Button */}
               <Link
                 href="/admin/manage"
                 className="bg-yellow-500 text-white px-5 py-2.5 rounded-xl hover:bg-yellow-600 transition flex items-center gap-2 shadow-lg font-semibold"
@@ -273,6 +308,8 @@ export default function AdminPage() {
                 </svg>
                 Manage Content
               </Link>
+              
+              {/* Logout Button */}
               <button
                 onClick={handleLogout}
                 className="bg-white/20 px-5 py-2.5 rounded-xl hover:bg-white/30 transition flex items-center gap-2 backdrop-blur-sm"
@@ -295,6 +332,51 @@ export default function AdminPage() {
             <p className={message.type === 'success' ? 'text-green-700' : 'text-red-700'}>{message.text}</p>
           </div>
         )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Contact Messages</p>
+                <p className="text-3xl font-bold text-gray-900">{messageCount}</p>
+              </div>
+              <div className="bg-purple-100 p-3 rounded-full">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Quick Actions</p>
+                <p className="text-sm text-gray-600">Add or manage content</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Backend Status</p>
+                <p className="text-sm text-green-600 font-semibold">✅ Connected</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-full">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-2 gap-8">
@@ -515,14 +597,25 @@ export default function AdminPage() {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Recent Activity
+              Quick Tips
             </h2>
           </div>
           
           <div className="p-6">
-            <p className="text-gray-500 text-center py-4">
-              Your recent activities will appear here after you add scholarships or templates to the cloud database.
-            </p>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-xl">
+                <div className="text-blue-600 font-bold mb-2">📬 Messages</div>
+                <p className="text-sm text-gray-600">Click the purple Messages button to view all contact form submissions.</p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-xl">
+                <div className="text-yellow-600 font-bold mb-2">✏️ Manage Content</div>
+                <p className="text-sm text-gray-600">Edit or delete existing scholarships and templates.</p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-xl">
+                <div className="text-green-600 font-bold mb-2">➕ Add New</div>
+                <p className="text-sm text-gray-600">Use the forms above to add new scholarships and templates.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
